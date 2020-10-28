@@ -3,6 +3,7 @@ package com.davoh.list_adapter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -25,7 +26,7 @@ class RvListAdapter: ListAdapter<String, RvListAdapter.ItemViewHolder>(DiffCallb
             // TODO: Bind the data with View
             itemView.textView.text = item
             setOnClickListener {
-                // TODO: Handle on click
+                Toast.makeText(context, "$item was clicked", Toast.LENGTH_SHORT).show()
             }
         }
     }
