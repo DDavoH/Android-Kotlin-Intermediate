@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.item_row.view.*
 
 class ListAdapter(private val context: Context,
-                  private val listItems: List<String>
+                  private val listItems: MutableList<String>
 ):
         RecyclerView.Adapter<BaseViewHolder<*>>(){
 
