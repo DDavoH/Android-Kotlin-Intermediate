@@ -32,11 +32,11 @@ class RvListAdapter: ListAdapter<String, RvListAdapter.ItemViewHolder>(DiffCallb
 
     class DiffCallback : DiffUtil.ItemCallback<String>() {
         override fun areItemsTheSame(oldItem: String, newItem: String): Boolean {
-            return false
+            return oldItem == newItem
         }
 
         override fun areContentsTheSame(oldItem: String, newItem: String): Boolean {
-            return false
+            return oldItem == newItem
         }
 
     }
