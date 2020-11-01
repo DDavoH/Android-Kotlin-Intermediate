@@ -28,29 +28,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         requestAccesFineLocationPermission()
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return
-        }
-        fusedLocationClient.lastLocation
-                .addOnSuccessListener { location: Location? ->
-                    // Got last known location. In some rare situations this can be null.
-                    if (location != null) {
-                        txtLocation.text = location.latitude.toString()
-                    }
-                }
 
     }
 
@@ -105,6 +82,17 @@ class MainActivity : AppCompatActivity() {
                 //performAction(...)
                 Toast.makeText(this, "This persission is granted before", Toast.LENGTH_SHORT).show()
                 displayLocationSettingsRequest()
+
+                fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+                fusedLocationClient.lastLocation
+                        .addOnSuccessListener { location: Location? ->
+                            // Got last known location. In some rare situations this can be null.
+                            if (location != null) {
+                                txtLatitude.text = location.latitude.toString()
+                                txtLongitude.text = location.longitude.toString()
+                            }
+                        }
             }
             shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
             // In an educational UI, explain to the user why your app requires this
@@ -159,6 +147,7 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if(requestCode==GPS_REQUEST_CODE){
             Toast.makeText(this, "GPS ENABLED", Toast.LENGTH_SHORT).show()
+            //Log.d(TAG, "onActivityResult: requestCode: $requestCode")
         }
     }
 
