@@ -1,27 +1,100 @@
 package com.davoh.locationpermission
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.IntentSender.SendIntentException
 import android.content.pm.PackageManager
-import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
+import android.location.Location
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
-import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import kotlinx.android.synthetic.*
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.*
+import kotlinx.android.synthetic.main.activity_main.*
+
 
 class MainActivity : AppCompatActivity() {
 
 
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        requestPermission()
+        requestAccesFineLocationPermission()
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
+        }
+        fusedLocationClient.lastLocation
+                .addOnSuccessListener { location: Location? ->
+                    // Got last known location. In some rare situations this can be null.
+                    if (location != null) {
+                        txtLocation.text = location.latitude.toString()
+                    }
+                }
+
     }
 
-    
-    private fun requestPermission() {
+    private fun displayLocationSettingsRequest() {
+
+        val mLocationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(10 * 1000.toLong())
+                .setFastestInterval(1 * 1000.toLong())
+
+        val settingsBuilder = LocationSettingsRequest.Builder()
+                .addLocationRequest(mLocationRequest)
+        settingsBuilder.setAlwaysShow(true)
+
+        val result = LocationServices.getSettingsClient(this)
+                .checkLocationSettings(settingsBuilder.build())
+
+        Toast.makeText(this, "Dialog initialized", Toast.LENGTH_SHORT).show()
+
+        result.addOnCompleteListener { task ->
+            try {
+                val response = task.getResult(ApiException::class.java)
+                Toast.makeText(this, "Dialog showed", Toast.LENGTH_SHORT).show()
+
+            } catch (ex: ApiException) {
+                when (ex.statusCode) {
+                    LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> try {
+                        val resolvableApiException = ex as ResolvableApiException
+                        resolvableApiException.startResolutionForResult(this, GPS_REQUEST_CODE)
+                    } catch (e: SendIntentException) {
+
+                    }
+                    LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
+                    }
+                }
+            }
+
+        }
+
+
+
+    }
+
+    private fun requestAccesFineLocationPermission() {
 
         when {
             ContextCompat.checkSelfPermission(
@@ -31,6 +104,7 @@ class MainActivity : AppCompatActivity() {
                 // You can use the API that requires the permission.
                 //performAction(...)
                 Toast.makeText(this, "This persission is granted before", Toast.LENGTH_SHORT).show()
+                displayLocationSettingsRequest()
             }
             shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
             // In an educational UI, explain to the user why your app requires this
@@ -39,11 +113,11 @@ class MainActivity : AppCompatActivity() {
             // continue using your app without granting the permission.
             //showInContextUI(...)
                 Toast.makeText(this, "This persission is not granted", Toast.LENGTH_SHORT).show()
-                requestPermissions( arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), PEMISSION_CODE_ACCES_FINE_LOCATION)
+                requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), PEMISSION_CODE_ACCES_FINE_LOCATION)
         }
             else -> {
                 // You can directly ask for the permission.
-                requestPermissions( arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), PEMISSION_CODE_ACCES_FINE_LOCATION)
+                requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), PEMISSION_CODE_ACCES_FINE_LOCATION)
             }
         }
 
@@ -81,7 +155,18 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(requestCode==GPS_REQUEST_CODE){
+            Toast.makeText(this, "GPS ENABLED", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+
     companion object {
         private const val PEMISSION_CODE_ACCES_FINE_LOCATION = 110
+        private const val GPS_REQUEST_CODE = 121
+        private const val TAG = "MainActivity"
     }
 }

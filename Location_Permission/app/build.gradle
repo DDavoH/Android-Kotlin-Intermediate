@@ -49,4 +49,7 @@ dependencies {
 
     // Kotlin
     implementation "androidx.activity:activity-ktx:$activity_version"
+
+    //Location service
+    implementation "com.google.android.gms:play-services-location:17.1.0"
 }
