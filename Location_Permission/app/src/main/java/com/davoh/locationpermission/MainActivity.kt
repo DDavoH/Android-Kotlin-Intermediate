@@ -1,7 +1,6 @@
 package com.davoh.locationpermission
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.IntentSender.SendIntentException
 import android.content.pm.PackageManager
@@ -12,6 +11,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
@@ -23,76 +23,28 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        requestAccesFineLocationPermission()
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+        requestAccessFineLocationPermission()
     }
 
-    private fun displayLocationSettingsRequest() {
 
-        val mLocationRequest = LocationRequest.create()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(10 * 1000.toLong())
-                .setFastestInterval(1 * 1000.toLong())
-
-        val settingsBuilder = LocationSettingsRequest.Builder()
-                .addLocationRequest(mLocationRequest)
-        settingsBuilder.setAlwaysShow(true)
-
-        val result = LocationServices.getSettingsClient(this)
-                .checkLocationSettings(settingsBuilder.build())
-
-        Toast.makeText(this, "Dialog initialized", Toast.LENGTH_SHORT).show()
-
-        result.addOnCompleteListener { task ->
-            try {
-                val response = task.getResult(ApiException::class.java)
-                Toast.makeText(this, "Dialog showed", Toast.LENGTH_SHORT).show()
-
-            } catch (ex: ApiException) {
-                when (ex.statusCode) {
-                    LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> try {
-                        val resolvableApiException = ex as ResolvableApiException
-                        resolvableApiException.startResolutionForResult(this, GPS_REQUEST_CODE)
-                    } catch (e: SendIntentException) {
-
-                    }
-                    LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
-                    }
-                }
-            }
-
-        }
-
-
-
-    }
-
-    private fun requestAccesFineLocationPermission() {
+    private fun requestAccessFineLocationPermission() {
 
         when {
             ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED -> {
                 // You can use the API that requires the permission.
                 //performAction(...)
-                Toast.makeText(this, "This persission is granted before", Toast.LENGTH_SHORT).show()
+                Log.d(TAG, "requestAccessFineLocationPermission: This persission is granted before ")
                 displayLocationSettingsRequest()
-
-                fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
-                fusedLocationClient.lastLocation
-                        .addOnSuccessListener { location: Location? ->
-                            // Got last known location. In some rare situations this can be null.
-                            if (location != null) {
-                                txtLatitude.text = location.latitude.toString()
-                                txtLongitude.text = location.longitude.toString()
-                            }
-                        }
             }
             shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
             // In an educational UI, explain to the user why your app requires this
@@ -100,12 +52,18 @@ class MainActivity : AppCompatActivity() {
             // include a "cancel" or "no thanks" button that allows the user to
             // continue using your app without granting the permission.
             //showInContextUI(...)
-                Toast.makeText(this, "This persission is not granted", Toast.LENGTH_SHORT).show()
-                requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), PEMISSION_CODE_ACCES_FINE_LOCATION)
+                Log.d(TAG, "requestAccessFineLocationPermission: This persission is not granted ")
+                requestPermissions(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    PEMISSION_CODE_ACCES_FINE_LOCATION
+                )
         }
             else -> {
                 // You can directly ask for the permission.
-                requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), PEMISSION_CODE_ACCES_FINE_LOCATION)
+                requestPermissions(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    PEMISSION_CODE_ACCES_FINE_LOCATION
+                )
             }
         }
 
@@ -119,12 +77,18 @@ class MainActivity : AppCompatActivity() {
             PEMISSION_CODE_ACCES_FINE_LOCATION -> {
                 // If request is cancelled, the result arrays are empty.
                 if ((grantResults.isNotEmpty() &&
-                                grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                            grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                ) {
                     // Permission is granted. Continue the action or workflow
                     // in your app.
                     Toast.makeText(this, "This persission is granted", Toast.LENGTH_SHORT).show()
+                    displayLocationSettingsRequest()
                 } else {
-                    Toast.makeText(this, "This is a feature unavaible because require a permission", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        "This is a feature unavaible because require a permission",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     // Explain to the user that the feature is unavailable because
                     // the features requires a permission that the user has denied.
                     // At the same time, respect the user's decision. Don't link to
@@ -143,12 +107,80 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private fun displayLocationSettingsRequest() {
+
+        val mLocationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(10 * 1000.toLong())
+                .setFastestInterval(1 * 1000.toLong())
+
+        val settingsBuilder = LocationSettingsRequest.Builder()
+                .addLocationRequest(mLocationRequest)
+        settingsBuilder.setAlwaysShow(true)
+
+        val result = LocationServices.getSettingsClient(this)
+                .checkLocationSettings(settingsBuilder.build())
+
+        Log.d(TAG, "displayLocationSettingsRequest()")
+
+        result.addOnCompleteListener { task ->
+            try {
+                val response = task.getResult(ApiException::class.java)
+
+                if(response.locationSettingsStates.isLocationUsable){
+
+                    requestLastLocation()
+
+                }
+
+
+            } catch (ex: ApiException) {
+                Log.d(TAG, "Solicitando activación gps")
+                when (ex.statusCode) {
+                    LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> try {
+                        val resolvableApiException = ex as ResolvableApiException
+                        resolvableApiException.startResolutionForResult(this, GPS_REQUEST_CODE)
+                    } catch (e: SendIntentException) {
+
+                    }
+                    LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
+                    }
+                }
+            }
+
+        }
+
+
+
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if(requestCode==GPS_REQUEST_CODE){
             Toast.makeText(this, "GPS ENABLED", Toast.LENGTH_SHORT).show()
+
+            displayLocationSettingsRequest()
             //Log.d(TAG, "onActivityResult: requestCode: $requestCode")
         }
+    }
+
+    private fun requestLastLocation(){
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            return
+        }
+        fusedLocationClient.lastLocation
+                .addOnSuccessListener { location: Location? ->
+                    // Got last known location. In some rare situations this can be null.
+                    if (location != null) {
+                        txtLatitude.text = location.latitude.toString()
+                        txtLongitude.text = location.longitude.toString()
+                        Log.d(TAG, "latitude: ${location.latitude}")
+                    }
+                }
     }
 
 
@@ -159,3 +191,7 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
     }
 }
+
+
+
+
