@@ -6,6 +6,7 @@ import android.content.IntentSender.SendIntentException
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
+import android.os.PersistableBundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -21,12 +22,22 @@ import kotlinx.android.synthetic.main.activity_main.*
 class MainActivity : AppCompatActivity() {
 
 
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
+    private var requestingLocationUpdates = false
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationCallback: LocationCallback
+
+
+    override fun onResume() {
+        super.onResume()
+        if (requestingLocationUpdates) startLocationUpdates()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        updateValuesFromBundle(savedInstanceState)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -178,9 +189,40 @@ class MainActivity : AppCompatActivity() {
                     if (location != null) {
                         txtLatitude.text = location.latitude.toString()
                         txtLongitude.text = location.longitude.toString()
-                        Log.d(TAG, "latitude: ${location.latitude}")
+                        Log.d(TAG, "requestLastLocation: Obteniendo LastLocation")
+                        Log.d(TAG, "onLocationResult: Latitud: ${location.latitude} , Longitude: ${location.longitude}")
+                    }else{
+                        //update locations
+                        //if location return null start to requestLocationUpdated
+                        startLocationUpdates()
                     }
                 }
+    }
+
+    private fun startLocationUpdates(){
+        val mLocationRequest = LocationRequest.create()
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setInterval(10 * 1000.toLong())
+                .setFastestInterval(1 * 1000.toLong())
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            return
+        }
+
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult?) {
+                locationResult ?: return
+                for (location in locationResult.locations){
+                    Log.d(TAG, "onLocationResult: Obteniendo actualización de ubicación")
+                    Log.d(TAG, "onLocationResult: Latitud: ${location.latitude} , Longitude: ${location.longitude}")
+                    txtLatitude.text = location.latitude.toString()
+                    txtLongitude.text = location.longitude.toString()
+                }
+            }
+        }
+
+        fusedLocationClient.requestLocationUpdates(mLocationRequest, locationCallback, null)
     }
 
 
@@ -188,7 +230,28 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PEMISSION_CODE_ACCES_FINE_LOCATION = 110
         private const val GPS_REQUEST_CODE = 121
+        private const val REQUESTING_LOCATION_UPDATES_KEY = "125"
         private const val TAG = "MainActivity"
+    }
+
+    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
+        outState?.putBoolean(REQUESTING_LOCATION_UPDATES_KEY, requestingLocationUpdates)
+        super.onSaveInstanceState(outState, outPersistentState)
+    }
+
+    private fun updateValuesFromBundle(savedInstanceState: Bundle?) {
+        savedInstanceState ?: return
+
+        // Update the value of requestingLocationUpdates from the Bundle.
+        if (savedInstanceState.keySet().contains(REQUESTING_LOCATION_UPDATES_KEY)) {
+            requestingLocationUpdates = savedInstanceState.getBoolean(
+                    REQUESTING_LOCATION_UPDATES_KEY)
+        }
+
+        // ...
+
+        // Update UI to match restored state
+        //updateUI()
     }
 }
 
