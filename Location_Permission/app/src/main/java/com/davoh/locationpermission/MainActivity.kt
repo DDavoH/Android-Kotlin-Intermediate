@@ -218,6 +218,7 @@ class MainActivity : AppCompatActivity() {
                     Log.d(TAG, "onLocationResult: Latitud: ${location.latitude} , Longitude: ${location.longitude}")
                     txtLatitude.text = location.latitude.toString()
                     txtLongitude.text = location.longitude.toString()
+                    requestingLocationUpdates=true
                 }
             }
         }
